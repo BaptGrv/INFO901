@@ -10,7 +10,8 @@ class Process(Thread):
     def __init__(self,name, nbProcess):
         Thread.__init__(self)
 
-        self.com = Com()
+        self.name = name
+        self.com = Com(self)
 
         self.setName(name)
 
@@ -24,8 +25,11 @@ class Process(Thread):
         while self.alive:
             print(self.getName() + " Loop: " + str(loop))
             sleep(1)
-
-
+            
+            # Exemple d'utilisation de broadcast
+            if loop == 2:  # Au bout de 5 boucles, envoyer un message à tout le monde
+                if self.getName() == "P0":
+                    self.com.broadcast("Message de P0 à tout le monde")
 
         
 

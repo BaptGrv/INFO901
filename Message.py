@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class Message(ABC):
@@ -8,7 +8,6 @@ class Message(ABC):
         self.dest = dest # Le processus destinataire
         self.stamp = stamp # L'horloge de Lamport au moment de l'envoi
 
-
-    @abstractmethod
-    def process(self):
-        pass
+class BroadcastMessage(Message):
+    def __init__(self, src, payload, stamp):
+        super().__init__(src=src, payload=payload, stamp=stamp)
