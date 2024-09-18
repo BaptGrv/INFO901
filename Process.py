@@ -42,13 +42,13 @@ class Process(Thread):
                     print("Catched !")
                     self.com.broadcast("J'ai gagné !!!")
                 else:
-                    msg = self.com.mailbox.getMsg();
+                    msg = self.com.mailbox.getMsg()
                     print(str(msg.getSender())+" à eu le jeton en premier")
                 self.com.releaseSC()
 
 
             if self.getName() == "P1":
-                if ! self.com.mailbox.isEmpty():
+                if not self.com.mailbox.isEmpty():
                     self.com.mailbox.getMessage()
                     self.com.recevFromSync(msg, 0)
 
@@ -59,7 +59,7 @@ class Process(Thread):
                         print("Catched !")
                         self.com.broadcast("J'ai gagné !!!")
                     else:
-                        msg = self.com.mailbox.getMsg();
+                        msg = self.com.mailbox.getMsg()
                         print(str(msg.getSender())+" à eu le jeton en premier")
                     self.com.releaseSC()
                     
@@ -74,7 +74,7 @@ class Process(Thread):
                     print("Catched !")
                     self.com.broadcast("J'ai gagné !!!")
                 else:
-                    msg = self.com.mailbox.getMsg();
+                    msg = self.com.mailbox.getMsg()
                     print(str(msg.getSender())+" à eu le jeton en premier")
                 self.com.releaseSC()
                 
