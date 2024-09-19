@@ -19,6 +19,6 @@ if __name__ == '__main__':
 
     #bus = EventBus.getInstance()
     
-    launch(nbProcess=3, runningTime=10)
+    launch(nbProcess=4, runningTime=10)
 
     #bus.stop()

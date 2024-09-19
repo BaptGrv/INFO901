@@ -45,18 +45,38 @@ class Process(Thread):
             # Exemple d'utilisation de Token
             # Demande l'accès à la section critique
             
-            if loop == 1 and self.name == "P0":
-                t = Token("P1")
-                self.com.sendTokenTo(t)
+            # if loop == 1 and self.name == "P0":
+            #     t = Token("P1")
+            #     self.com.sendTokenTo(t)
 
-            if loop == 2 and self.name == "P2":
-                self.com.requestToken()
-                print("enterin CS")
-                sleep(2)
-                print("leaving CS")
-                self.com.releaseToken()
+            # if loop == 2 and self.name == "P2":
+            #     self.com.requestToken()
+            #     print("enterin CS")
+            #     sleep(2)
+            #     print("leaving CS")
+            #     self.com.releaseToken()
+
+            # if loop == 3 and self.name == "P1":
+            #     self.com.requestToken()
+            #     print("enterin CS")
+            #     sleep(2)
+            #     print("leaving CS")
+            #     self.com.releaseToken()
             
 
+            # Exemple d'utilisation de Synchronisation
+            # Synchronize test
+            if loop == 2 and self.name == "P0":
+                self.com.synchronize()
+
+            if loop == 4 and self.name == "P1":
+                self.com.synchronize()
+
+            if loop == 6 and self.name == "P2":
+                self.com.synchronize()
+
+            if loop == 8 and self.name == "P3":
+                self.com.synchronize()
 
 
 

@@ -28,3 +28,9 @@ class MessageTo(Message):
 class Token(Message):
     def __init__(self, dest):
         super().__init__(dest=dest)
+
+class SynchronizationMessage(Message):
+    def __init__(self, src, stamp):
+        super().__init__(src=src, stamp=stamp)
+
+

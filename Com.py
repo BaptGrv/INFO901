@@ -2,7 +2,7 @@ import threading
 from time import sleep
 from pyeventbus3.pyeventbus3 import *
 from pyeventbus3.pyeventbus3 import PyBus
-from Message import Message, BroadcastMessage, MessageTo, Token
+from Message import Message, BroadcastMessage, MessageTo, Token, SynchronizationMessage
 from State import State
 
 # reception et envoie ne doivent pas etre dans le fichier process, process c'est la partie utilisateur, 
@@ -21,6 +21,8 @@ class Com(Thread):
 
         # Récupérer le nombre total de processus depuis l'objet process
         self.nbProcess = process.nbProcess
+
+        self.cptSynchronize = self.nbProcess - 1  # Compteur pour la synchronisation
 
         # Gestion du Token
         self.token = Token(self.owner) if has_token else None  # Initialisation du jeton si ce processus le possède
@@ -154,4 +156,26 @@ class Com(Thread):
 
             self.sendTokenTo(Token(nextProcess))
             self.process.state = State.NONE
+
+    # Méhode pour la synchronisation
+
+    # Chaque processus envoie un message lorsqu'il atteint la barrière
+    # Lorsque le compteur atteint le nombre total de processus, la synchronisation est effectuée
+    # Tous les processus sont libérés et le compteur est réinitialisé
+    def synchronize(self):
+        PyBus.Instance().post(SynchronizationMessage(src=self.owner, stamp=self.clock))
+        print(f"{self.owner} a atteint le point de synchronisation.")
+
+        while self.cptSynchronize > 0:
+            sleep(1)
+        self.cptSynchronize = self.process.nbProcess - 1
+
+
+    # Méthode appelée lors de la réception d'un message de synchronisation
+    # Si le message n'a pas été envoyé par ce processus, le compteur est décrémenté
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=SynchronizationMessage)
+    def onSynchronize(self, event):
+
+        if event.src != self.owner:
+            self.cptSynchronize -= 1
                     
