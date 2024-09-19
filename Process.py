@@ -11,6 +11,7 @@ class Process(Thread):
     def __init__(self,name, nbProcess):
         Thread.__init__(self)
 
+        self.nbProcess = nbProcess
         self.name = name
         self.com = Com(self)
 
@@ -44,20 +45,17 @@ class Process(Thread):
             # Exemple d'utilisation de Token
             # Demande l'accès à la section critique
             
-            if loop == 0 and self.name == "P0":
-                # Envoi initial du Token depuis P0
-                t = Token("P0")  # Assigner le Token à P0 au départ
+            if loop == 1 and self.name == "P0":
+                t = Token("P1")
                 self.com.sendTokenTo(t)
 
-            if loop == 2 and self.name == "P1" :
+            if loop == 2 and self.name == "P2":
                 self.com.requestToken()
-                print("entering CS")
+                print("enterin CS")
                 sleep(2)
                 print("leaving CS")
                 self.com.releaseToken()
-
-
-
+            
 
 
 

@@ -19,10 +19,12 @@ class Com(Thread):
         self.process = process
         self.owner = process.name # Le processus qui utilise cette instance de Com
 
+        # Récupérer le nombre total de processus depuis l'objet process
+        self.nbProcess = process.nbProcess
+
         # Gestion du Token
         self.token = Token(self.owner) if has_token else None  # Initialisation du jeton si ce processus le possède
         self.process.state = State.NONE  # État initial
-
 
         PyBus.Instance().register(self, self)
 
@@ -122,13 +124,14 @@ class Com(Thread):
     def sendTokenTo(self, token: Token):
     
         PyBus.Instance().post(token)
-        print(f"{self.owner} a envoyé le jeton au processus {token.getHolder()}.")
+        print(f"{self.owner} a envoyé le jeton au processus {token.dest}.")
 
 
     # Token reception
     @subscribe(threadMode=Mode.PARALLEL, onEvent=Token)
     def on_token(self, event):
-        if self.owner == event.getHolder() and self.process.alive:
+        if self.owner == event.dest and self.process.alive:
+            sleep(1)
             print(f"{self.owner} a le jeton.")
             if self.process.state == State.REQUEST:
                 self.process.state = State.SC
@@ -137,6 +140,18 @@ class Com(Thread):
                 # Bloquer tant que le processus n'est pas dans l'état RELEASE
                 while self.process.state != State.RELEASE:
                     sleep(1)
-                    print(f"{self.owner} attend la libération du jeton.")
+                    print(f"{self.owner} a le jeton et l'utilise.")
                 print(f"{self.owner} quitte la section critique.")
-                
+
+            # Extraire le numéro du propriétaire actuel (self.owner est de la forme "P2", donc on récupère "2")
+            numberOwner = int(self.owner[1:])  # Récupère tout après le premier caractère
+            
+            # Calculer l'index du prochain processus de manière circulaire
+            nextProcessNumber = (numberOwner + 1) % self.process.nbProcess
+            
+            # Générer le nom du prochain processus sous la forme "P" suivi du numéro
+            nextProcess = "P" + str(nextProcessNumber)
+
+            self.sendTokenTo(Token(nextProcess))
+            self.process.state = State.NONE
+                    
