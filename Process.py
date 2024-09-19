@@ -27,11 +27,20 @@ class Process(Thread):
             sleep(1)
             
             # Exemple d'utilisation de broadcast
-            if loop == 2:  # Au bout de 5 boucles, envoyer un message à tout le monde
-                if self.getName() == "P0":
-                    self.com.broadcast("Message de P0 à tout le monde")
+            # if loop == 2:  # Envoyer un message à tout le monde au 2e tour
+            #     if self.getName() == "P0":
+            #         self.com.broadcast("Bonjour de la part de P0")
 
         
+            # Exemple d'utilisation de sendTo
+            if loop == 2 and self.name == "P0":
+                self.com.sendTo("Bonjour","P1")
+            if loop == 4 and self.name == "P1":
+                if len(self.com.mailbox) > 0:
+                    print(f"Message reçu par {self.name} : {self.com.getFirstMessage().payload}")
+
+
+
 
 
 

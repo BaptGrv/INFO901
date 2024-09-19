@@ -11,3 +11,15 @@ class Message(ABC):
 class BroadcastMessage(Message):
     def __init__(self, src, payload, stamp):
         super().__init__(src=src, payload=payload, stamp=stamp)
+
+
+class MessageTo(Message):
+    def __init__(self, timestamp, payload, sender, receiver):
+        super().__init__(src=sender, payload=payload, stamp=timestamp)
+        self.receiver = receiver  # Le destinataire du message
+    
+    def getSender(self):
+        return self.src  # 'src' correspond à l'émetteur dans la classe parente
+    
+    def getReceiver(self):
+        return self.receiver
