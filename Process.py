@@ -2,6 +2,7 @@ from threading import Lock, Thread
 
 from time import sleep
 import time
+from Message import Token
 
 from Com import Com
 
@@ -33,12 +34,27 @@ class Process(Thread):
 
         
             # Exemple d'utilisation de sendTo
-            if loop == 2 and self.name == "P0":
-                self.com.sendTo("Bonjour","P1")
-            if loop == 4 and self.name == "P1":
-                if len(self.com.mailbox) > 0:
-                    print(f"Message reçu par {self.name} : {self.com.getFirstMessage().payload}")
+            # if loop == 2 and self.name == "P0":
+            #     self.com.sendTo("Bonjour","P1")
+            # if loop == 4 and self.name == "P1":
+            #     if len(self.com.mailbox) > 0:
+            #         print(f"{self.name} a reçu un message : {self.com.getFirstMessage().payload}")
 
+
+            # Exemple d'utilisation de Token
+            # Demande l'accès à la section critique
+            
+            if loop == 0 and self.name == "P0":
+                # Envoi initial du Token depuis P0
+                t = Token("P0")  # Assigner le Token à P0 au départ
+                self.com.sendTokenTo(t)
+
+            if loop == 2 and self.name == "P1" :
+                self.com.requestToken()
+                print("entering CS")
+                sleep(2)
+                print("leaving CS")
+                self.com.releaseToken()
 
 
 

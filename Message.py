@@ -23,3 +23,14 @@ class MessageTo(Message):
     
     def getReceiver(self):
         return self.receiver
+
+
+class Token(Message):
+    def __init__(self, dest):
+        super().__init__(dest=dest)
+
+    def getHolder(self):
+        return self.dest  # Utilisez l'attribut 'dest' pour le détenteur du jeton
+
+    def setHolder(self, new_holder):
+        self.dest = new_holder  # Changez le destinataire du jeton

@@ -2,13 +2,14 @@ import threading
 from time import sleep
 from pyeventbus3.pyeventbus3 import *
 from pyeventbus3.pyeventbus3 import PyBus
-from Message import Message, BroadcastMessage, MessageTo
+from Message import Message, BroadcastMessage, MessageTo, Token
+from State import State
 
 # reception et envoie ne doivent pas etre dans le fichier process, process c'est la partie utilisateur, 
 # on doit seulement appeler les fonctions de communication
 
 class Com(Thread):
-    def __init__(self, process):
+    def __init__(self, process, has_token=False):
         # Appel explicite au constructeur de threading.Thread
         Thread.__init__(self)
 
@@ -17,6 +18,10 @@ class Com(Thread):
         self.mailbox = [] # Boite aux lettres pour stocker les messages reçus
         self.process = process
         self.owner = process.name # Le processus qui utilise cette instance de Com
+
+        # Gestion du Token
+        self.token = Token(self.owner) if has_token else None  # Initialisation du jeton si ce processus le possède
+        self.process.state = State.NONE  # État initial
 
 
         PyBus.Instance().register(self, self)
@@ -96,3 +101,42 @@ class Com(Thread):
             # print(f"Process {self.owner} a reçu un message de {event.getSender()} : {event.payload}")
             self.addMessageToMailbox(event)
 
+
+    # Méthode pour les tokens 
+    # Demande l'accès à la session critique et bloque tant que le jeton n'est pas détenu
+    def requestToken(self):
+        self.process.state = State.REQUEST
+        print(f"{self.owner} a demandé la section critique.")
+
+        # Attendre jusqu'à ce que le processus passe en état SC
+        while self.process.state != State.SC:
+            sleep(1)
+
+
+    # Libère le jeton pour permettre à un autre processus d'entrer dans la section critique
+    def releaseToken(self):
+        self.process.state = State.RELEASE
+        print(f"{self.owner} libère le jeton.")
+
+    # Méthode pour envoyer le jeton au processus suivant
+    def sendTokenTo(self, token: Token):
+    
+        PyBus.Instance().post(token)
+        print(f"{self.owner} a envoyé le jeton au processus {token.getHolder()}.")
+
+
+    # Token reception
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=Token)
+    def on_token(self, event):
+        if self.owner == event.getHolder() and self.process.alive:
+            print(f"{self.owner} a le jeton.")
+            if self.process.state == State.REQUEST:
+                self.process.state = State.SC
+                print(f"{self.owner} entre en section critique.")
+                
+                # Bloquer tant que le processus n'est pas dans l'état RELEASE
+                while self.process.state != State.RELEASE:
+                    sleep(1)
+                    print(f"{self.owner} attend la libération du jeton.")
+                print(f"{self.owner} quitte la section critique.")
+                
