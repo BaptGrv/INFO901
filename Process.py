@@ -66,17 +66,28 @@ class Process(Thread):
 
             # Exemple d'utilisation de Synchronisation
             # Synchronize test
-            if loop == 2 and self.name == "P0":
-                self.com.synchronize()
+            # if loop == 2 and self.name == "P0":
+            #     self.com.synchronize()
 
-            if loop == 4 and self.name == "P1":
-                self.com.synchronize()
+            # if loop == 4 and self.name == "P1":
+            #     self.com.synchronize()
 
-            if loop == 6 and self.name == "P2":
-                self.com.synchronize()
+            # if loop == 6 and self.name == "P2":
+            #     self.com.synchronize()
 
-            if loop == 8 and self.name == "P3":
-                self.com.synchronize()
+            # if loop == 8 and self.name == "P3":
+            #     self.com.synchronize()
+
+
+
+            # Exemple d'utilisation de Broadcast Synchronisé
+            if loop == 1 and self.name == "P0":
+                self.com.broadcastSync(self.name, "Bonjour tout le monde")
+
+            if loop == 4 and self.name == "P2":
+                self.com.broadcastSync(self.name, "Moi aussi j'envoie un message")
+
+             
 
 
 

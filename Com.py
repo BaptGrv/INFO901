@@ -2,7 +2,7 @@ import threading
 from time import sleep
 from pyeventbus3.pyeventbus3 import *
 from pyeventbus3.pyeventbus3 import PyBus
-from Message import Message, BroadcastMessage, MessageTo, Token, SynchronizationMessage
+from Message import Message, BroadcastMessage, MessageTo, Token, SynchronizationMessage, BroadcastMessageSync
 from State import State
 
 # reception et envoie ne doivent pas etre dans le fichier process, process c'est la partie utilisateur, 
@@ -23,6 +23,7 @@ class Com(Thread):
         self.nbProcess = process.nbProcess
 
         self.cptSynchronize = self.nbProcess - 1  # Compteur pour la synchronisation
+        self.messageReceived = False  # Indique si un message a été reçu
 
         # Gestion du Token
         self.token = Token(self.owner) if has_token else None  # Initialisation du jeton si ce processus le possède
@@ -178,4 +179,45 @@ class Com(Thread):
 
         if event.src != self.owner:
             self.cptSynchronize -= 1
+
+    
+
+    ############Méthodes synchrones################
+
+    # Méthode broadcast synchrone
+    def broadcastSync(self,sender, payload):
+        if self.owner == sender:
+            self.inc_clock()
+            messageSync = BroadcastMessageSync(src=self.owner, payload=payload, stamp=self.clock)
+            PyBus.Instance().post(messageSync)
+            print(f"Process {self.owner} envoie un message broadcasté : {payload}")
+            self.synchronize()
+        else:
+            while not self.messageReceived:
+                sleep(1)
+            self.synchronize()
+            self.messageReceived = False
                     
+
+    # Méthode appelée lorsqu'un message broadcastSync est reçu
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=BroadcastMessageSync)
+    def onBroadcast(self, event):
+    
+        # Si le message n'a pas été envoyé par ce processus
+        if event.src != self.owner:
+            sleep(1)
+            # Mettre à jour l'horloge Lamport en fonction du message reçu
+            if self.clock > event.stamp:
+                self.inc_clock()
+            else:
+                self.clock = event.stamp
+
+            # Ajouter le message à la boîte aux lettres 
+            self.addMessageToMailbox(event)
+            
+            # Afficher le message reçu
+            print(f"Process {self.owner} a reçu un message broadcasté : {self.getFirstMessage().payload}")
+            self.synchronize()
+            self.messageReceived = True
+
+
