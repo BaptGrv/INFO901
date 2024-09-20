@@ -5,14 +5,33 @@ from pyeventbus3.pyeventbus3 import PyBus
 from Message import Message, BroadcastMessage, MessageTo, Token, SynchronizationMessage, BroadcastMessageSync, MessageToSync, ReceivedMessageSync
 from State import State
 
-# reception et envoie ne doivent pas etre dans le fichier process, process c'est la partie utilisateur, 
-# on doit seulement appeler les fonctions de communication
+
 
 class Com(Thread):
-    def __init__(self, process, has_token=False):
-        # Appel explicite au constructeur de threading.Thread
-        Thread.__init__(self)
+    """
+    Classe Communicator (Com) qui gère la communication entre les processus via un bus d'événements
+    et utilise une horloge de Lamport pour la synchronisation des événements.
 
+    Attributs:
+    - process (Process): Le processus auquel ce communicateur est associé.
+    - clock (int): L'horloge logique de Lamport utilisée pour la synchronisation.
+    - semaphore (Semaphore): Utilisé pour gérer les accès concurrents à l'horloge.
+    - mailbox (list): Liste des messages reçus par le processus.
+    - nbProcess (int): Le nombre total de processus dans le système.
+    - token (Token): Jeton utilisé pour la section critique si ce processus en possède un.
+    - messageReceived (bool): Indique si un message a été reçu.
+    """
+
+
+    def __init__(self, process, has_token=False):
+        """
+        Initialise le communicateur pour un processus.
+
+        :param process: L'objet Process associé à ce communicateur.
+        :param has_token: Indique si ce processus possède le jeton initial.
+        """
+
+        Thread.__init__(self)
         self.clock = 0 # Horloge de Lamport 
         self.semaphore = threading.Semaphore() # Semaphore pour la gestion des accès concurrents à l'horloge
         self.mailbox = [] # Boite aux lettres pour stocker les messages reçus
@@ -31,24 +50,49 @@ class Com(Thread):
 
         PyBus.Instance().register(self, self)
 
-    # Incrémente l'horloge de Lamport
+
     def inc_clock(self):
+        """
+        Incrémente l'horloge logique de Lamport pour ce processus.
+
+        :return: La nouvelle valeur de l'horloge.
+        """
         with self.semaphore:
             self.clock += 1
             return self.clock
         
     def get_clock(self):
+        """
+        Retourne la valeur actuelle de l'horloge logique de Lamport.
+
+        :return: La valeur de l'horloge.
+        """
         return self.clock
     
     # Gestion de la boite aux lettres
-    def getFirstMessage(self) -> Message:
-        return self.mailbox.pop(0)
-
     def addMessageToMailbox(self, msg: Message):
+        """
+        Ajoute un message à la boîte aux lettres du processus.
+
+        :param msg: Le message à ajouter.
+        """
         self.mailbox.append(msg)
 
-    # Envoie un message à tous les autres processus via le bus d'événements
+    def getFirstMessage(self) -> Message:
+        """
+        Retourne et retire le premier message de la boîte aux lettres.
+
+        :return: Le premier message de la boîte aux lettres.
+        """
+        return self.mailbox.pop(0)
+
+
     def broadcast(self, payload: object):
+        """
+        Envoie un message à tous les autres processus via le bus d'événements.
+
+        :param payload: Le contenu du message à envoyer.
+        """
         
         # Incrémenter l'horloge avant d'envoyer le message
         self.inc_clock()
@@ -60,9 +104,14 @@ class Com(Thread):
         # Poster le message sur le bus d'événements
         PyBus.Instance().post(message)
 
-    # Méthode appelée lorsqu'un message broadcasté est reçu
+
     @subscribe(threadMode=Mode.PARALLEL, onEvent=BroadcastMessage)
     def onBroadcast(self, event):
+        """
+        Méthode appelée lorsqu'un message broadcasté est reçu.
+
+        :param event: L'événement de diffusion du message.
+        """
     
         # Si le message n'a pas été envoyé par ce processus
         if event.src != self.owner:
@@ -82,8 +131,14 @@ class Com(Thread):
 
 
 
-    # Méthode pour envoyer un message dédié à un autre processus
+
     def sendTo(self, payload, to):
+        """
+        Envoie un message dédié à un autre processus via le bus d'événements.
+
+        :param payload: Le contenu du message.
+        :param to: Le destinataire du message.
+        """
         self.inc_clock()  # Incrémente l'horloge avant l'envoi
         messageTo = MessageTo(self.clock, payload, self.owner, to)  # Crée un message dédié
 
@@ -95,9 +150,14 @@ class Com(Thread):
 
         
 
-    # Méthode appelée lors de la réception d'un message dédié
+
     @subscribe(threadMode=Mode.PARALLEL, onEvent=MessageTo)
     def onMessageTo(self, event):
+        """
+        Méthode appelée lors de la réception d'un message dédié.
+
+        :param event: L'événement MessageTo représentant le message reçu.
+        """
         if event.getReceiver() == self.owner: # Vérifie si le message est destiné à ce processus
             if self.clock > event.stamp:
                 self.inc_clock()
@@ -108,8 +168,11 @@ class Com(Thread):
 
 
     # Méthode pour les tokens 
-    # Demande l'accès à la session critique et bloque tant que le jeton n'est pas détenu
+
     def requestToken(self):
+        """
+        Demande l'accès à la section critique et bloque tant que le jeton n'est pas détenu.
+        """
         self.process.state = State.REQUEST
         print(f"{self.owner} a demandé la section critique.")
 
@@ -118,14 +181,20 @@ class Com(Thread):
             sleep(1)
 
 
-    # Libère le jeton pour permettre à un autre processus d'entrer dans la section critique
     def releaseToken(self):
+        """
+        Libère le jeton pour permettre à un autre processus d'entrer dans la section critique.
+        """
         self.process.state = State.RELEASE
         print(f"{self.owner} libère le jeton.")
 
-    # Méthode pour envoyer le jeton au processus suivant
+
     def sendTokenTo(self, token: Token):
-    
+        """
+        Envoie le jeton au processus suivant.
+
+        :param token: Le jeton à envoyer.
+        """
         PyBus.Instance().post(token)
         print(f"{self.owner} a envoyé le jeton au processus {token.dest}.")
 
@@ -133,6 +202,9 @@ class Com(Thread):
     # Token reception
     @subscribe(threadMode=Mode.PARALLEL, onEvent=Token)
     def on_token(self, event):
+        """
+        Méthode appelée lors de la réception d'un jeton.
+        """
         if self.owner == event.dest and self.process.alive:
             sleep(1)
             print(f"{self.owner} a le jeton.")
@@ -159,11 +231,10 @@ class Com(Thread):
             self.process.state = State.NONE
 
     # Méhode pour la synchronisation
-
-    # Chaque processus envoie un message lorsqu'il atteint la barrière
-    # Lorsque le compteur atteint le nombre total de processus, la synchronisation est effectuée
-    # Tous les processus sont libérés et le compteur est réinitialisé
     def synchronize(self):
+        """
+        Synchronise le processus avec les autres en atteignant un point de synchronisation.
+        """
         PyBus.Instance().post(SynchronizationMessage(src=self.owner, stamp=self.clock))
         print(f"{self.owner} a atteint le point de synchronisation.")
 
@@ -174,10 +245,11 @@ class Com(Thread):
         self.cptSynchronize = self.process.nbProcess - 1
 
 
-    # Méthode appelée lors de la réception d'un message de synchronisation
-    # Si le message n'a pas été envoyé par ce processus, le compteur est décrémenté
     @subscribe(threadMode=Mode.PARALLEL, onEvent=SynchronizationMessage)
     def onSynchronize(self, event):
+        """
+        Méthode appelée lors de la réception d'un message de synchronisation.
+        """
 
         if event.src != self.owner:
             self.cptSynchronize -= 1
@@ -188,6 +260,12 @@ class Com(Thread):
 
     # Méthode broadcast synchrone
     def broadcastSync(self,sender, payload):
+        """
+        Méthode de diffusion synchrone.
+        
+        :param sender: Le processus émetteur.
+        :param payload: Le message à diffuser.
+        """
         if self.owner == sender:
             self.inc_clock()
             messageSync = BroadcastMessageSync(src=self.owner, payload=payload, stamp=self.clock)
@@ -201,10 +279,13 @@ class Com(Thread):
             self.messageReceived = False
                     
 
-    # Méthode appelée lorsqu'un message broadcastSync est reçu
     @subscribe(threadMode=Mode.PARALLEL, onEvent=BroadcastMessageSync)
     def onBroadcast(self, event):
-    
+        """
+        Méthode appelée lors de la réception d'un message broadcast synchrone.
+
+        :param event: L'événement de diffusion synchrone.
+        """
         # Si le message n'a pas été envoyé par ce processus
         if event.src != self.owner:
             sleep(1)
@@ -223,8 +304,14 @@ class Com(Thread):
             self.messageReceived = True
 
 
-    # Méthode pour envoyer un message dédié à un autre processus en synchrone
+
     def sendToSync(self, payload, to):
+        """
+        Envoie un message dédié à un autre processus en mode synchrone.
+
+        :param payload: Le message à envoyer.
+        :param to: Le destinataire du message.
+        """
         self.inc_clock()  # Incrémente l'horloge avant l'envoi
         messageToSync = MessageToSync(self.clock, payload, self.owner, to)
 
@@ -251,6 +338,11 @@ class Com(Thread):
 
     # Méthode pour attendre la réception d'un message
     def receivFromSync(self):
+        """
+        Méthode pour attendre la réception d'un message synchrone.
+    
+        :raises: La méthode bloque tant qu'aucun message n'est reçu.
+        """
         print(f"{self.owner} attend un message.")
         while not self.messageReceived :
             sleep(1)
@@ -261,6 +353,11 @@ class Com(Thread):
 
     @subscribe(threadMode=Mode.PARALLEL, onEvent=ReceivedMessageSync)
     def onReceivFromSync(self, event):
+        """
+        Méthode appelée lors de la réception d'un accusé de réception (`ReceivedMessageSync`).
+
+        :param event: L'événement de type `ReceivedMessageSync` contenant l'accusé de réception.
+        """
         if event.receiver == self.owner:
             print("Message reçu")
             if self.clock > event.stamp:
