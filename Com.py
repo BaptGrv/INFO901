@@ -2,7 +2,7 @@ import threading
 from time import sleep
 from pyeventbus3.pyeventbus3 import *
 from pyeventbus3.pyeventbus3 import PyBus
-from Message import Message, BroadcastMessage, MessageTo, Token, SynchronizationMessage, BroadcastMessageSync
+from Message import Message, BroadcastMessage, MessageTo, Token, SynchronizationMessage, BroadcastMessageSync, MessageToSync, ReceivedMessageSync
 from State import State
 
 # reception et envoie ne doivent pas etre dans le fichier process, process c'est la partie utilisateur, 
@@ -169,6 +169,8 @@ class Com(Thread):
 
         while self.cptSynchronize > 0:
             sleep(1)
+
+        # Réinitialiser le compteur pour la prochaine synchronisation
         self.cptSynchronize = self.process.nbProcess - 1
 
 
@@ -221,3 +223,48 @@ class Com(Thread):
             self.messageReceived = True
 
 
+    # Méthode pour envoyer un message dédié à un autre processus en synchrone
+    def sendToSync(self, payload, to):
+        self.inc_clock()  # Incrémente l'horloge avant l'envoi
+        messageToSync = MessageToSync(self.clock, payload, self.owner, to)
+
+        print(f"Process {self.owner} envoie un message à {to} : {messageToSync.payload} ")
+    
+        PyBus.Instance().post(messageToSync)  # Envoie le message via le bus
+
+        while not self.messageReceived:
+            sleep(1)
+        self.messageReceived = False
+
+    # Méthode appelée lors de la réception d'un message dédié synchronisé
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=MessageToSync)
+    def onMessageToSync(self, event):
+        if event.receiver == self.owner: # Vérifie si le message est destiné à ce processus
+            if self.clock > event.stamp:
+                self.inc_clock()
+            else:
+                self.clock = event.stamp
+            # print(f"Process {self.owner} a reçu un message de {event.getSender()} : {event.payload}")
+            self.messageReceived = True
+            self.addMessageToMailbox(event)
+
+
+    # Méthode pour attendre la réception d'un message
+    def receivFromSync(self):
+        print(f"{self.owner} attend un message.")
+        while not self.messageReceived :
+            sleep(1)
+        lastMessage = self.mailbox[len(self.mailbox) - 1]
+        receiveMsg = ReceivedMessageSync(src=self.owner, stamp=self.clock, receiver=lastMessage.src)
+        PyBus.Instance().post(receiveMsg)
+        self.messageReceived = False
+
+    @subscribe(threadMode=Mode.PARALLEL, onEvent=ReceivedMessageSync)
+    def onReceivFromSync(self, event):
+        if event.receiver == self.owner:
+            print("Message reçu")
+            if self.clock > event.stamp:
+                self.__inc_clock()
+            else:
+                self.clock = event.stamp
+            self.messageReceived = True

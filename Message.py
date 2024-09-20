@@ -37,3 +37,20 @@ class SynchronizationMessage(Message):
 class BroadcastMessageSync(Message):
     def __init__(self, src, payload, stamp):
         super().__init__(src=src, payload=payload, stamp=stamp)
+
+
+class MessageToSync(Message):
+    def __init__(self, timestamp, payload, sender, receiver):
+        super().__init__(src=sender, payload=payload, stamp=timestamp)
+        self.receiver = receiver  # Le destinataire du message
+
+    def getSender(self):
+        return self.src  # 'src' correspond à l'émetteur dans la classe parente
+    
+    def getReceiver(self):
+        return self.receiver
+
+class ReceivedMessageSync(Message):
+    def __init__(self, src, stamp, receiver):
+        super().__init__(src=src, stamp=stamp)
+        self.receiver = receiver  # Le destinataire du message

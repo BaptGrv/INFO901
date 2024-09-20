@@ -72,22 +72,43 @@ class Process(Thread):
             # if loop == 4 and self.name == "P1":
             #     self.com.synchronize()
 
-            # if loop == 6 and self.name == "P2":
+            # if loop == 5 and self.name == "P2":
             #     self.com.synchronize()
 
-            # if loop == 8 and self.name == "P3":
+            # if loop == 6 and self.name == "P3":
             #     self.com.synchronize()
 
 
 
             # Exemple d'utilisation de Broadcast Synchronisé
-            if loop == 1 and self.name == "P0":
-                self.com.broadcastSync(self.name, "Bonjour tout le monde")
+            # if loop == 1 and self.name == "P0":
+            #     self.com.broadcastSync(self.name, "Bonjour tout le monde")
 
-            if loop == 4 and self.name == "P2":
-                self.com.broadcastSync(self.name, "Moi aussi j'envoie un message")
+            # if loop == 4 and self.name == "P2":
+            #     self.com.broadcastSync(self.name, "Moi aussi j'envoie un message")
 
              
+            # Exemple d'utilisation de MessageToSync
+             # Synchronized send to test
+            if loop == 2 and self.name == "P0":
+                self.com.sendToSync("Bonjour de la part de P0", "P1")
+
+            if loop == 4 and self.name == "P1":
+                self.com.receivFromSync()
+
+            if loop == 5 and self.name == "P2":
+                self.com.receivFromSync()
+            
+            if loop == 6 and self.name == "P3":
+                self.com.receivFromSync()
+
+            if loop == 8 and self.name == "P0":
+                self.com.sendToSync("Bonjour de la part de P0", "P2")
+            
+            if loop == 10 and self.name == "P1":
+                self.com.sendToSync("Bonjour de la part de P1", "P3")
+    
+
 
 
 
